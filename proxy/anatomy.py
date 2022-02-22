@@ -23,18 +23,22 @@ Usage:
     (Setting up a single proxy instance and using iptables to redirect to it
     works as well)
 """
-import re
 
+#Keeping host header unchanged ensures that all traffic forwarded from localhost:80 to 443 preserves the host
+#header as that of the actual host instead of modifying it to localhost which causes an infinite loop
+import re
+from mitmproxy import ctx
+from mitmproxy import flow
 # This regex extracts splits the host header into host and port.
 # Handles the edge case of IPv6 addresses containing colons.
 # https://bugzilla.mozilla.org/show_bug.cgi?id=45891
 parse_host_header = re.compile(r"^(?P<host>[^:]+|\[.+\])(?::(?P<port>\d+))?$")
 
 
-def request(flow):
+def request(flow:flow.Flow):
     if flow.client_conn.tls_established:
         flow.request.scheme = "https"
-        sni = flow.client_conn.connection.get_servername()
+        sni = flow.client_conn.sni
         port = 443
     else:
         flow.request.scheme = "http"
@@ -49,3 +53,5 @@ def request(flow):
     flow.request.host_header = host_header
     flow.request.host = sni or host_header
     flow.request.port = port
+    ctx.log.info(flow.request.host)
+    

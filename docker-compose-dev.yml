@@ -1,0 +1,17 @@
+version: "2.9"
+
+services:
+  dnsproxy:
+    container_name: dnsproxy
+    build:
+      context: ./dns
+    command: DEV
+    ports:
+      - "53:53/udp"
+  mitmproxy:
+    container_name: mitmproxy
+    build:
+      context: ./proxy
+    ports:
+      - "80:80/tcp"
+      - "443:443/tcp"

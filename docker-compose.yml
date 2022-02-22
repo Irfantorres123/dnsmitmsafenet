@@ -5,6 +5,7 @@ services:
     container_name: dnsproxy
     build:
       context: ./dns
+    command: PROD
     ports:
       - "53:53/udp"
   mitmproxy:
