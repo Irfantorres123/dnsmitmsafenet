@@ -12,7 +12,7 @@ the time.
 Usage:
     mitmproxy
         -p 443
-        -s dns_spoofing.py
+        -s anatomy.py
         # Used as the target location if neither SNI nor host header are present.
         --mode reverse:http://example.com/
         # To avoid auto rewriting of host header by the reverse proxy target.
@@ -26,16 +26,20 @@ Usage:
 
 #Keeping host header unchanged ensures that all traffic forwarded from localhost:80 to 443 preserves the host
 #header as that of the actual host instead of modifying it to localhost which causes an infinite loop
+from typing import Tuple
+from mitmproxy import http
 import re
-from mitmproxy import ctx
-from mitmproxy import flow
+from mitmproxy.script.concurrent import concurrent
+from mitmproxy.http import HTTPFlow
 # This regex extracts splits the host header into host and port.
 # Handles the edge case of IPv6 addresses containing colons.
 # https://bugzilla.mozilla.org/show_bug.cgi?id=45891
 parse_host_header = re.compile(r"^(?P<host>[^:]+|\[.+\])(?::(?P<port>\d+))?$")
+t=0
+from mitmproxy import ctx
 
-
-def request(flow:flow.Flow):
+@concurrent
+def request(flow:HTTPFlow):
     if flow.client_conn.tls_established:
         flow.request.scheme = "https"
         sni = flow.client_conn.sni
@@ -53,5 +57,18 @@ def request(flow:flow.Flow):
     flow.request.host_header = host_header
     flow.request.host = sni or host_header
     flow.request.port = port
-    ctx.log.info(flow.request.host)
+    
+def applyFilter(content:bytes,contentType:str,contentLength)->Tuple[str]:
+    
+    return content,contentType,contentLength
+
+def response(flow:HTTPFlow):
+    content=flow.response.data.content
+    headers=flow.response.data.headers
+    contentType=headers.get("Content-Type")
+    contentLength=headers.get("Content-Length")
+    modifiedContent,modifiedContentType,modifiedContentLength=applyFilter(content,contentType,contentLength)
+    flow.response.content=modifiedContent
+    headers['Content-Type']=modifiedContentType
+    headers['Content-Length']=modifiedContentLength
     

@@ -4,6 +4,7 @@ WORKDIR /usr/src/dns
 
 COPY requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
+ENV IP=$IP
 EXPOSE 53/udp
 COPY . .
 ENTRYPOINT [ "python","./start.py" ]

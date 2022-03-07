@@ -8,4 +8,4 @@ RUN pip3 install -r requirements.txt &&\
     chmod +x ./entrypoint.sh
 EXPOSE 80 443
 COPY . .
-ENTRYPOINT [ "./entrypoint.sh" ]
+ENTRYPOINT [ "./regularent.sh" ]
